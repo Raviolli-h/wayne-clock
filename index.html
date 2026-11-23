@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Live countdown clock in Europe/London time, for a Notion embed.">
+  <title>The Clock</title>
+  <style>
+    :root {
+      --bg: #0a0b0d;
+      --panel: #12141a;
+      --yellow: #f5c518;
+      --yellow-dim: #8a7010;
+      --text: #f3f1ea;
+      --muted: #8b9098;
+      --track: #262930;
+      --line: #1c1f26;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", "Liberation Mono", Menlo, Consolas, monospace;
+      min-height: 100%;
+    }
+    body {
+      padding: 12px 14px 14px;
+    }
+    main {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .eyebrow {
+      color: var(--yellow);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+    #nowline {
+      color: var(--muted);
+      font-size: 11px;
+      text-align: right;
+      line-height: 1.35;
+    }
+    #nowline strong {
+      color: var(--yellow);
+      font-weight: 600;
+    }
+    .hero, .row {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px 11px;
+      margin-bottom: 8px;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .big {
+      color: var(--yellow);
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums;
+    }
+    .sub {
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 3px;
+    }
+    .bar {
+      height: 7px;
+      background: var(--track);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--yellow);
+      border-radius: 99px;
+      box-shadow: 0 0 8px rgba(245, 197, 24, 0.35);
+    }
+    .pct {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    footer {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.02em;
+      margin-top: 6px;
+      text-align: center;
+    }
+    @media (min-width: 360px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .grid .span { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand">
+        <div class="eyebrow">Batcomputer</div>
+        <h1>The Clock</h1>
+      </div>
+      <div id="nowline">Europe/London</div>
+    </header>
+
+    <section class="hero">
+      <div class="label">Today</div>
+      <div class="big" id="today">loading</div>
+      <div class="bar" aria-hidden="true"><i id="today-bar"></i></div>
+      <div class="pct" id="today-pct"></div>
+    </section>
+
+    <section class="hero">
+      <div class="label">Awake</div>
+      <div class="big" id="awake">loading</div>
+      <div class="bar" aria-hidden="true"><i id="awake-bar"></i></div>
+      <div class="pct" id="awake-pct"></div>
+    </section>
+
+    <div class="grid">
+      <section class="row span">
+        <div class="label">This week</div>
+        <div class="sub" id="week">loading</div>
+        <div class="bar" aria-hidden="true"><i id="week-bar"></i></div>
+        <div class="pct" id="week-pct"></div>
+      </section>
+      <section class="row">
+        <div class="label">This month</div>
+        <div class="sub" id="month">loading</div>
+        <div class="bar" aria-hidden="true"><i id="month-bar"></i></div>
+        <div class="pct" id="month-pct"></div>
+      </section>
+      <section class="row">
+        <div class="label">This year</div>
+        <div class="sub" id="year">loading</div>
+        <div class="bar" aria-hidden="true"><i id="year-bar"></i></div>
+        <div class="pct" id="year-pct"></div>
+      </section>
+    </div>
+
+    <footer id="foot">Europe/London</footer>
+  </main>
+  <script>
+    (function () {
+      var TZ = 'Europe/London';
+
+      function pad(n) { return String(n).padStart(2, '0'); }
+
+      function parseHourParam(value, fallback) {
+        if (value == null || value === '') return fallback;
+        var s = String(value).trim();
+        var hm = s.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+        if (!hm) return fallback;
+        var h = parseInt(hm[1], 10);
+        var m = hm[2] != null ? parseInt(hm[2], 10) : 0;
+        if (h < 0 || h > 23 || m < 0 || m > 59) return fallback;
+        return h + m / 60;
+      }
+
+      function formatHM(hours) {
+        var h = Math.floor(hours);
+        var m = Math.round((hours - h) * 60);
+        if (m === 60) { h += 1; m = 0; }
+        return pad(h) + ':' + pad(m);
+      }
+
+      var params = new URLSearchParams(location.search);
+      var wakeHours = parseHourParam(params.get('wake'), 7);
+      var bedHours = parseHourParam(params.get('bed'), 23);
+      if (bedHours === wakeHours) {
+        wakeHours = 7;
+        bedHours = 23;
+      }
+
+      function londonParts(date) {
+        var map = {};
+        var fmt = new Intl.DateTimeFormat('en-GB', {
+          timeZone: TZ,
+          weekday: 'short',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hourCycle: 'h23'
+        });
+        fmt.formatToParts(date).forEach(function (p) {
+          if (p.type !== 'literal') map[p.type] = p.value;
+        });
+        var dow = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[map.weekday];
+        return {
+          year: +map.year,
+          month: +map.month,
+          day: +map.day,
+          hour: +map.hour,
+          minute: +map.minute,
+          second: +map.second,
+          dow: dow,
+          weekday: map.weekday
+        };
+      }
+
+      function tzOffsetMs(date) {
+        var p = londonParts(date);
+        var asUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+        return asUTC - date.getTime();
+      }
+
+      function londonLocalToUtc(y, m, d, h, min, s) {
+        var utc = Date.UTC(y, m - 1, d, h, min || 0, s || 0);
+        var offset = tzOffsetMs(new Date(utc));
+        utc = Date.UTC(y, m - 1, d, h, min || 0, s || 0) - offset;
+        offset = tzOffsetMs(new Date(utc));
+        utc = Date.UTC(y, m - 1, d, h, min || 0, s || 0) - offset;
+        return new Date(utc);
+      }
+
+      function addDays(y, m, d, days) {
+        var dt = new Date(Date.UTC(y, m - 1, d + days));
+        return { year: dt.getUTCFullYear(), month: dt.getUTCMonth() + 1, day: dt.getUTCDate() };
+      }
+
+      function splitHours(hoursFloat) {
+        var h = Math.floor(hoursFloat);
+        var min = Math.round((hoursFloat - h) * 60);
+        if (min === 60) { h += 1; min = 0; }
+        return { h: h, m: min };
+      }
+
+      function formatRemain(ms, withSeconds) {
+        if (ms < 0) ms = 0;
+        var totalSec = Math.floor(ms / 1000);
+        var days = Math.floor(totalSec / 86400);
+        var hours = Math.floor((totalSec % 86400) / 3600);
+        var mins = Math.floor((totalSec % 3600) / 60);
+        var secs = totalSec % 60;
+        var parts = [];
+        if (days > 0) parts.push(days + 'd');
+        parts.push(hours + 'h');
+        parts.push(mins + 'm');
+        if (withSeconds) parts.push(secs + 's');
+        return parts.join(' ') + ' left';
+      }
+
+      function setBar(id, pct) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var clamped = Math.max(0, Math.min(100, pct));
+        el.style.width = clamped + '%';
+      }
+
+      function tick() {
+        var now = new Date();
+        var p = londonParts(now);
+        var todayStart = londonLocalToUtc(p.year, p.month, p.day, 0, 0, 0);
+        var tomorrow = addDays(p.year, p.month, p.day, 1);
+        var todayEnd = londonLocalToUtc(tomorrow.year, tomorrow.month, tomorrow.day, 0, 0, 0);
+        var dayTotal = todayEnd - todayStart;
+        var dayUsed = now - todayStart;
+        var dayLeft = todayEnd - now;
+        var dayPct = dayTotal > 0 ? (100 * dayUsed) / dayTotal : 0;
+
+        var wake = splitHours(wakeHours);
+        var bed = splitHours(bedHours);
+        var wakeAt = londonLocalToUtc(p.year, p.month, p.day, wake.h, wake.m, 0);
+        var bedAt = londonLocalToUtc(p.year, p.month, p.day, bed.h, bed.m, 0);
+        if (bedAt <= wakeAt) {
+          var next = addDays(p.year, p.month, p.day, 1);
+          bedAt = londonLocalToUtc(next.year, next.month, next.day, bed.h, bed.m, 0);
+        }
+        var awakeTotal = bedAt - wakeAt;
+        var awakeLeftMs = 0;
+        var awakeUsed = 0;
+        var awakeLabel;
+        if (now < wakeAt) {
+          awakeLabel = '0h 0m 0s left · before wake';
+        } else if (now >= bedAt) {
+          awakeLabel = '0h 0m 0s left · after lights out';
+          awakeUsed = awakeTotal;
+        } else {
+          awakeLeftMs = bedAt - now;
+          awakeUsed = now - wakeAt;
+          awakeLabel = formatRemain(awakeLeftMs, true);
+        }
+        var awakePct = awakeTotal > 0 ? (100 * Math.min(Math.max(awakeUsed, 0), awakeTotal)) / awakeTotal : 0;
+
+        var daysToMonday = p.dow === 7 ? 1 : (8 - p.dow);
+        var weekStartDays = p.dow === 7 ? -6 : (1 - p.dow);
+        var weekStartDate = addDays(p.year, p.month, p.day, weekStartDays);
+        var weekEndDate = addDays(p.year, p.month, p.day, daysToMonday);
+        var weekStart = londonLocalToUtc(weekStartDate.year, weekStartDate.month, weekStartDate.day, 0, 0, 0);
+        var weekEnd = londonLocalToUtc(weekEndDate.year, weekEndDate.month, weekEndDate.day, 0, 0, 0);
+        var weekTotal = weekEnd - weekStart;
+        var weekUsed = now - weekStart;
+        var weekLeft = weekEnd - now;
+        var weekPct = weekTotal > 0 ? (100 * weekUsed) / weekTotal : 0;
+
+        var nextMonth = p.month === 12
+          ? { year: p.year + 1, month: 1, day: 1 }
+          : { year: p.year, month: p.month + 1, day: 1 };
+        var monthStart = londonLocalToUtc(p.year, p.month, 1, 0, 0, 0);
+        var monthEnd = londonLocalToUtc(nextMonth.year, nextMonth.month, 1, 0, 0, 0);
+        var monthTotal = monthEnd - monthStart;
+        var monthUsed = now - monthStart;
+        var monthLeft = monthEnd - now;
+        var monthPct = monthTotal > 0 ? (100 * monthUsed) / monthTotal : 0;
+
+        var yearStart = londonLocalToUtc(p.year, 1, 1, 0, 0, 0);
+        var yearEnd = londonLocalToUtc(p.year + 1, 1, 1, 0, 0, 0);
+        var yearTotal = yearEnd - yearStart;
+        var yearUsed = now - yearStart;
+        var yearLeft = yearEnd - now;
+        var yearPct = yearTotal > 0 ? (100 * yearUsed) / yearTotal : 0;
+
+        document.getElementById('nowline').innerHTML =
+          p.weekday + ' ' + pad(p.day) + '/' + pad(p.month) + '<br><strong>' +
+          pad(p.hour) + ':' + pad(p.minute) + ':' + pad(p.second) + '</strong>';
+
+        document.getElementById('today').textContent = formatRemain(dayLeft, true);
+        document.getElementById('today-pct').textContent = Math.floor(dayPct) + '% of the day gone';
+        setBar('today-bar', dayPct);
+
+        document.getElementById('awake').textContent = awakeLabel;
+        document.getElementById('awake-pct').textContent =
+          (now >= wakeAt && now < bedAt)
+            ? Math.floor(awakePct) + '% of the waking day'
+            : 'Wake ' + formatHM(wakeHours) + ' · bed ' + formatHM(bedHours);
+        setBar('awake-bar', awakePct);
+
+        document.getElementById('week').textContent = formatRemain(weekLeft, true);
+        document.getElementById('week-pct').textContent = Math.floor(weekPct) + '% of the week · ends Sunday 23:59';
+        setBar('week-bar', weekPct);
+
+        document.getElementById('month').textContent = formatRemain(monthLeft, false);
+        document.getElementById('month-pct').textContent = Math.floor(monthPct) + '% gone';
+        setBar('month-bar', monthPct);
+
+        document.getElementById('year').textContent = formatRemain(yearLeft, false);
+        document.getElementById('year-pct').textContent = Math.floor(yearPct) + '% gone';
+        setBar('year-bar', yearPct);
+
+        document.getElementById('foot').textContent =
+          'Europe/London · wake ' + formatHM(wakeHours) + ' · bed ' + formatHM(bedHours);
+      }
+
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+</body>
+</html>
